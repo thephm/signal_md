@@ -472,7 +472,8 @@ def getStr(stringNumber):
 
     for string in strings:
         try:
-            if (int(string[STRINGS_NUMBER_INDEX]) == int(stringNumber)):
+            if (int(string[STRINGS_NUMBER_INDEX]) == int(stringNumber) and
+                int(string[STRINGS_LANGUAGE_INDEX]) == language):
                 result = string[STRINGS_TEXT_INDEX]
         except:
             pass
@@ -982,7 +983,6 @@ def createMarkdownFile(entity, outputFolder, meSlug):
 
             fileName = getOutputFileName(entity, outputFolder, message)
             exists = os.path.exists(fileName) 
-            print(fileName)
             outputFile = openOutputFile(fileName)
 
             if (outputFile):
