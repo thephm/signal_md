@@ -1,0 +1,18 @@
+{
+    "language":1,
+    "my-slug":"slug",
+    "source-folder":"c:\\data\\signald-output",
+    "attachments-folder":"c:\\data\\signald-output\\attachments",
+    "archive-folder":"c:\\data\\signald-output\\archive",
+    "output-folder":"c:\\data\\signald-output\\output",
+    "daily-notes-folder":"c:\\data\\signald-output\\output\\Daily Notes",
+    "media-subfolder":"media",
+    "folder-per-person": 1,
+    "file-per-person":1,
+    "file-per-day":1,
+    "include-timestamp":1,
+    "include-reactions":1,
+    "include-quote":1,
+    "colon-after-context":0,
+    "time-name-separate":0
+}

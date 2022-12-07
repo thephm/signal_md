@@ -1,0 +1,16 @@
+{
+    "groups": [
+        {
+            "id":"G49mXaA6ZEo+EbSCwbU97yYnekOMtQZ8oEhXFDLy9sE=",
+            "slug":"fishing",
+            "description":"They get hooked!",
+            "people": ["spongebob","patrick-star"]
+        },
+        {
+            "id":"wPmRPSnq0hajafjtrzecYyod5T1v68hHjvW/ongRcUQ=",
+            "slug":"bikini-bottom",
+            "description":"Bikini Bottom residents",
+            "people": ["spongebob", "mr-krabs", "patrick-star"]
+        }
+    ]
+}
