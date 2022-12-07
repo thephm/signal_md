@@ -241,13 +241,25 @@ Set like this and **no reactions** will be included in the output file.
 
 The `source-folder` setting controls where the input `signalmd` JSON files are.
 
+### Messages file
+
+This is the name of the file containing the JSON output from `signald` and found in the `source-folder`
+
+### Attachments sub-folder
+
+The `attachments-subfolder` is under the `source-folder` where `signald` put the attachments. 
+
 ### Archive folder
 
 The `archive-folder` is where a copy of the original messages file is placed so the messages don't get processed again
 
 ### Output folder
 
-The `output-folder` setting controls where the generated Markdown file(s) are placed. If this field is not in the settings file, default will be `output` where the script is run.
+The `output-folder` setting controls where the generated Markdown file(s) for **individual** conversations are placed. If this field is not in the settings file, default will be `output` where the script is run.
+
+### Groups folder
+
+The `groups-folder` setting controls where the generated Markdown file(s) for **group** conversations are placed. If this field is not in the settings file, default will be `output\groups` where the script is run.
 
 ### Media SubFolder
 

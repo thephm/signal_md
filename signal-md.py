@@ -23,16 +23,14 @@ YAML_APP_SIGNAL = "signal"
 TAG_CHAT = "chat"
 
 # files
-CONFIG_FOLDER = ".\config\\"
-SETTINGS_FILE_NAME= CONFIG_FOLDER + "settings.json"
-STRINGS_FILE_NAME = CONFIG_FOLDER + "strings.json"
-PEOPLE_FILE_NAME  = CONFIG_FOLDER + "people.json"
-GROUPS_FILE_NAME  = CONFIG_FOLDER + "groups.json"
-MIME_TYPES_FILE_NAME  = CONFIG_FOLDER + "mimetypes.json"
+CONFIG_FOLDER = "config"
+SETTINGS_FILE_NAME= os.path.join(CONFIG_FOLDER, "settings.json")
+STRINGS_FILE_NAME = os.path.join(CONFIG_FOLDER, "strings.json")
+PEOPLE_FILE_NAME  = os.path.join(CONFIG_FOLDER, "people.json")
+GROUPS_FILE_NAME  = os.path.join(CONFIG_FOLDER, "groups.json")
+MIME_TYPES_FILE_NAME = os.path.join(CONFIG_FOLDER, "mimetypes.json")
 MESSAGE_FILE_NAME = "messages.json"
 MESSAGES_COPY_FILE_NAME = "messages_copy.json"
-OUTPUT_FILE_NAME  = "output.md"
-GROUPS_FOLDER = "groups"
 
 # string fields
 LANGUAGE_FIELD = "language"
@@ -53,6 +51,8 @@ STR_FAILED_TO_WRITE = 6
 STR_COULD_NOT_LOAD_MIME_TYPES = 7
 STR_UNKNOWN_MIME_TYPE = 8
 STR_COULD_NOT_COPY_THE_ATTACHMENT = 9
+STR_COULD_NOT_COPY_MESSAGES_FILE = 10
+STR_COULD_NOT_OPEN_MESSAGES_FILE = 11
 
 # within array of string fields (after loaded)
 STRINGS_LANGUAGE_INDEX = 0
@@ -65,7 +65,8 @@ OUTPUT_FILE_EXTENSION = ".md"
 SETTING_LANGUAGE = "language"
 SETTING_MY_SLUG = "my-slug"
 SETTING_SOURCE_FOLDER = "source-folder"
-SETTING_ATTACHMENTS_FOLDER = "attachments-folder"
+SETTING_MESSAGES_FILE = "messages-file"
+SETTING_ATTACHMENTS_SUB_FOLDER = "attachments-sub-folder"
 SETTING_INCLUDE_TIMESTAMP = "include-timestamp"
 SETTING_INCLUDE_QUOTE = "include-quote"
 SETTING_COLON_AFTER_CONTEXT = "colon-after-context" 
@@ -73,6 +74,7 @@ SETTING_TIME_NAME_SEPARATE = "time-name-separate"
 SETTING_MEDIA_SUBFOLDER = "media-subfolder"
 SETTING_ARCHIVE_FOLDER = "archive-folder"
 SETTING_OUTPUT_FOLDER = "output-folder"
+SETTING_GROUPS_FOLDER = "groups-folder"
 SETTING_INCLUDE_REACTIONS = "include-reactions"
 SETTING_FOLDER_PER_PERSON = "folder-per-person"
 SETTING_FILE_PER_PERSON = "file-per-person"
@@ -145,10 +147,12 @@ strings = []
 language = ENGLISH # English
 mySlug = ""
 sourceFolder = ".\\"
-attachmentsFolder = sourceFolder + "attachments"
+messagesFile = sourceFolder + "messages.json"
+attachmentsFolder = os.path.join(sourceFolder, "attachments")
 mediaSubFolder = "media"
-archiveFolder = "archive\\"
-outputFolder = ".\\output\\"
+archiveFolder = "archive"
+outputFolder = "output"
+groupsFolder = os.path.join(outputFolder, "groups")
 dailyNotesFolder = ""
 includeTimestamp = True
 includeQuote = True
@@ -299,7 +303,7 @@ class Group:
     def __init__(self):
         self.id = ""
         self.description = ""
-        self.people = []
+        self.members = [] # collection of `Person.slug`s
         self.messages = [DatedMessages()] # collection of messages by day
 
 def loadMimeTypes():
@@ -321,6 +325,7 @@ def loadSettings():
     global language
     global mySlug
     global sourceFolder
+    global messagesFile
     global attachmentsFolder
     global includeTimestamp
     global includeQuote
@@ -329,6 +334,7 @@ def loadSettings():
     global mediaSubFolder
     global archiveFolder
     global outputFolder
+    global groupsFolder
     global includeReactions
     global folderPerPerson
     global filePerPerson
@@ -342,9 +348,11 @@ def loadSettings():
         language = int(settings[SETTING_LANGUAGE])
         mySlug = settings[SETTING_MY_SLUG]
         sourceFolder = settings[SETTING_SOURCE_FOLDER]
-        attachmentsFolder = settings[SETTING_ATTACHMENTS_FOLDER]
+        messagesFile = os.path.join(sourceFolder, settings[SETTING_MESSAGES_FILE])
+        attachmentsFolder = os.path.join(sourceFolder,settings[SETTING_ATTACHMENTS_SUB_FOLDER])
         archiveFolder = settings[SETTING_ARCHIVE_FOLDER]
         outputFolder = settings[SETTING_OUTPUT_FOLDER]
+        groupsFolder = settings[SETTING_GROUPS_FOLDER]
         mediaSubFolder = settings[SETTING_MEDIA_SUBFOLDER]
         dailyNotesFolder = settings[SETTING_DAILY_NOTES_FOLDER]
         includeTimestamp = bool(settings[SETTING_INCLUDE_TIMESTAMP])
@@ -404,7 +412,7 @@ def loadGroups(groups):
             group.description = jsonGroup[GROUP_FIELD_DESCRIPTION]
             try:
                 for personSlug in jsonGroup[GROUP_FIELD_PEOPLE]:
-                    group.people.append(personSlug)
+                    group.members.append(personSlug)
                 groups.append(group)
             except:
                 pass
@@ -471,6 +479,23 @@ def getStr(stringNumber):
 
     return result
 
+# create a folders if they doesn't exist
+def createFolders(folder):
+    
+    global mediaSubFolder
+    result = False
+
+    try:
+        Path(folder).mkdir(parents=True, exist_ok=True)
+        if (len(mediaSubFolder)):
+            mediaFolder = os.path.join(folder, mediaSubFolder)
+            Path(mediaFolder).mkdir(parents=True, exist_ok=True)
+        result = True
+    except Exception as e:
+        print(e)
+
+    return result
+
 # -----------------------------------------------------------------------------
 #
 # Create a folder for each persons' messages
@@ -484,24 +509,24 @@ def getStr(stringNumber):
 def createPersonFolders(people, folder, mySlug):
     
     global dailyNotesFolder
-    global mediaSubFolder
 
     for person in people:
-        if (not (len(dailyNotesFolder) and person.slug == mySlug)):
-            folderName = folder + "\\" + person.slug
-            Path(folderName).mkdir(parents=True, exist_ok=True)
-            if (len(mediaSubFolder)):
-                Path(folderName + "\\" + mediaSubFolder).mkdir(parents=True, exist_ok=True)
-        else:
-            Path(dailyNotesFolder + "\\" + mediaSubFolder).mkdir(parents=True, exist_ok=True)
+        try:
+            if (not (len(dailyNotesFolder) and person.slug == mySlug)):
+                folderName = os.path.join(folder, person.slug)
+                createFolders(folderName)
+            else:
+                createFolders(os.path.join(dailyNotesFolder, mediaSubFolder))
+        except Exception as e:
+            print(e)
 
 # create a folder for the group messages
 def createGroupFolders(groups, folder):
-    for group in groups:
-        folderName = folder + "\\" + group.slug
-        Path(folderName).mkdir(parents=True, exist_ok=True)
-        if (len(mediaSubFolder)):
-            Path(folderName + "\\" + mediaSubFolder).mkdir(parents=True, exist_ok=True)
+    try:
+        for group in groups:
+            createFolders(os.path.join(folder, group.slug))
+    except Exception as e:
+        print(e)
 
 # -----------------------------------------------------------------------------
 #
@@ -758,7 +783,12 @@ def loadMessages(fileName, messages):
     noBodyOrAttachment = 0
     i = 0
 
-    sourceFile = open(fileName, 'r', encoding="utf-8")
+    try:
+        sourceFile = open(fileName, 'r', encoding="utf-8")
+    except Exception as e:
+        print(getStr(STR_COULD_NOT_OPEN_MESSAGES_FILE) + ": " + fileName)
+        print(e)
+        return i
 
     while True:
         line = ""
@@ -844,12 +874,19 @@ def addMessages(messages, people, groups, mySlug):
     return
 
 def getFrontMatter(message, meSlug):
-
+    
     frontMatter = YAML_DASHES 
     frontMatter += YAML_TAGS + ": [" + TAG_CHAT + "]" + NEW_LINE
     frontMatter += YAML_PERSON_SLUGS + ": [" + meSlug 
     if (len(message.destinationSlug) and message.destinationSlug != meSlug):
         frontMatter += ", " + message.destinationSlug
+    elif (len(message.groupSlug)):
+        for group in groups:
+            if (group.slug == message.groupSlug):
+                for personSlug in group.members:
+                    frontMatter += ", " + personSlug
+                break
+
     elif (len(message.sourceSlug) and message.sourceSlug != meSlug):
         frontMatter += ", " + message.sourceSlug
     frontMatter += "]" + NEW_LINE
@@ -878,9 +915,9 @@ def getOutputFolderName(entity, outputFolder, message):
 
     # if the daily notes folder is defined, put the notes-to-self in there
     if (message.isNoteToSelf() and len(dailyNotesFolder)):
-        folder = dailyNotesFolder + "\\"
+        folder = dailyNotesFolder
     else:
-        folder = outputFolder + "\\" + entity.slug + "\\"
+        folder = os.path.join(outputFolder, entity.slug)
 
     return folder
 
@@ -898,7 +935,7 @@ def getOutputFolderName(entity, outputFolder, message):
 def getOutputFileName(entity, outputFolder, message):
 
     folder = getOutputFolderName(entity, outputFolder, message)
-    fileName = folder + message.dateStr + OUTPUT_FILE_EXTENSION
+    fileName = os.path.join(folder, message.dateStr + OUTPUT_FILE_EXTENSION)
     
     return fileName
 
@@ -945,6 +982,7 @@ def createMarkdownFile(entity, outputFolder, meSlug):
 
             fileName = getOutputFileName(entity, outputFolder, message)
             exists = os.path.exists(fileName) 
+            print(fileName)
             outputFile = openOutputFile(fileName)
 
             if (outputFile):
@@ -998,15 +1036,16 @@ def moveAttachments(entities, outputFolder, subFolder):
         for datedMessages in entity.messages:
             for message in datedMessages.messages:
                 destFolder = getOutputFolderName(entity, outputFolder, message)
-                destFolder += "\\" + subFolder + "\\"
+                destFolder = os.path.join(destFolder, subFolder)
                 for attachment in message.attachments:
                     if (len(attachment.id)):
-                        destFile = destFolder + attachment.id
+                        destFile = os.path.join(destFolder,attachment.id)
                         try:
                             destFile += "." + mimeTypes[attachment.type]      
                         except:
-                            print(getStr(STR_UNKNOWN_MIME_TYPE) + ": " + attachment.type)
-                        sourceFile = attachmentsFolder + "\\" + attachment.id
+                            print(getStr(STR_UNKNOWN_MIME_TYPE) + ": '" + attachment.type + "' (" + attachment.id + ')')
+                        
+                        sourceFile = os.path.join(attachmentsFolder, attachment.id)
                         try:
                             shutil.copyfile(sourceFile, destFile)
                         except:
@@ -1022,7 +1061,7 @@ loadSettings()
 print(SETTING_LANGUAGE + ": " + str(language))
 print(SETTING_MY_SLUG + ": " + str(mySlug))
 print(SETTING_SOURCE_FOLDER + ": " + sourceFolder)
-print(SETTING_ATTACHMENTS_FOLDER + ": " + str(attachmentsFolder))
+print(SETTING_ATTACHMENTS_SUB_FOLDER + ": " + str(attachmentsFolder))
 print(SETTING_ARCHIVE_FOLDER + ": " + str(archiveFolder))
 print(SETTING_OUTPUT_FOLDER + ": " + str(outputFolder))
 print(SETTING_MEDIA_SUBFOLDER + ": " + str(mediaSubFolder))
@@ -1038,23 +1077,32 @@ print(SETTING_DAILY_NOTES_FOLDER + ": " + str(dailyNotesFolder))
 
 loadMimeTypes()
 
+createFolders(dailyNotesFolder)
+
 loadPeople(people)
 createPersonFolders(people, outputFolder, mySlug)
 
 loadGroups(groups)
-createGroupFolders(groups, outputFolder + "\\" + GROUPS_FOLDER)
-
-sourceFile = sourceFolder + "\\" + MESSAGE_FILE_NAME
+createGroupFolders(groups, groupsFolder)
 
 # make a copy of the source file for now. Later once everything works
 # perfectly this will actually move it #todo
-destFile = archiveFolder + "\\" + MESSAGES_COPY_FILE_NAME
-shutil.copyfile(sourceFile, destFile)
+try:
+    Path(archiveFolder).mkdir(parents=True, exist_ok=True)
+    destFile = os.path.join(archiveFolder, MESSAGES_COPY_FILE_NAME)
+except Exception as e:
+    print(e)
+
+try:
+    shutil.copyfile(messagesFile, destFile)
+except Exception as e:
+    print(getStr(STR_COULD_NOT_COPY_MESSAGES_FILE) + ": " + messagesFile)
+    print(e)
 
 messages = []
-if (loadMessages(destFile, messages)):
+if (os.path.exists(messagesFile) and loadMessages(destFile, messages)):
     addMessages(messages, people, groups, mySlug)
     moveAttachments(people, outputFolder, mediaSubFolder)
-    moveAttachments(groups, outputFolder + "\\" + GROUPS_FOLDER, mediaSubFolder)
+    moveAttachments(groups, groupsFolder, mediaSubFolder)
     generateMarkdownFiles(people, outputFolder, mySlug)
-    generateMarkdownFiles(groups, outputFolder + "\\" + GROUPS_FOLDER, mySlug)
+    generateMarkdownFiles(groups, groupsFolder, mySlug)
