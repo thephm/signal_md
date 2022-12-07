@@ -146,8 +146,8 @@ strings = []
 # set the default values for the settings
 language = ENGLISH # English
 mySlug = ""
-sourceFolder = ".\\"
-messagesFile = sourceFolder + "messages.json"
+sourceFolder = "."
+messagesFile = os.path.join(sourceFolder, "messages.json")
 attachmentsFolder = os.path.join(sourceFolder, "attachments")
 mediaSubFolder = "media"
 archiveFolder = "archive"
