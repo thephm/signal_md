@@ -1,10 +1,12 @@
 # Changes
 
 ## 2022-12-06
+
 - creating github repo and project
 - migrated to-dos into github project board
 
 ## 2022-12-05
+
 - got reply with quote working so it outputs something like this
 
 ```
@@ -73,10 +75,6 @@
 > Once it's running you simply run 'signald subscribe' and all of the messages are output to JSON (or another format). The only issue is the images
 
 > BUT for those, not so bad because they are also exported (without file suffixes) with an ID that's inside the JSON for each message containing an attachment. With a bash script, I can move those out of the Docker container to a safe place
-
-> Here's a message my wife sent me an hour ago in JSON
-
-[[Example signald output]]
 
 > With a Python script (my first ever, shhh!) I am able to read the JSON and convert it to Markdown, adding in YAML front matter like this
 
