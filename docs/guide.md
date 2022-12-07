@@ -19,7 +19,7 @@ with each person defined on a separate row.
 ### Example
 
 ```
-{"number":"+14165551212","person-slug":"spongbob-squarepants","first-name":"SpongeBob"}
+{"number":"+14165551212","person-slug":"spongebob-squarepants","first-name":"SpongeBob"}
 {"number":"+12895551313","person-slug":"mr-krab","first-name":"Krab"}
 
 ```
@@ -146,18 +146,18 @@ If this field is set to `0`:
 This is the message
 ```
 
-#### Colon after contet
+#### Colon after content
 
 If `colon-after-context` is set to `1`, then
 
 ```
-Stone at 10:20:
+SpongeBob at 10:20:
 ```
 
 If this field is set to `0`, then
 
 ```
-Stone at 10:20
+SpongeBob at 10:20
 ```
 
 #### Time and name separate
@@ -208,7 +208,7 @@ The `time-name-separate` setting controls whether the time of the message and th
 If set to `0`, then the sender's first name and time are output like this: 
 
 ```
-Stone at 10:20
+SpongeBob at 10:20
 ```
 
 If set to `1`, then the the time is output, a blank line, and then the sender's first name.
@@ -216,7 +216,7 @@ If set to `1`, then the the time is output, a blank line, and then the sender's 
 ```
 10:20
 
-Stone 
+SpongeBob 
 ```
 
 ## Include reactions
