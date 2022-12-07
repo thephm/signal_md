@@ -1,11 +1,5 @@
 This file provides details on how to configure the `signal-md` tool.
 
-## Note to self
-
-There's special handling for Note-to-Self:
-
-- <firstName at> are never shown so those settings don't have any affect
-
 ## People
 
 Add each of the people you communicate with in this file:
@@ -297,4 +291,10 @@ When set to `1` the `file-per-day` setting creates a separate file for each day 
 ```
     "file-per-day":1,
 ```
+
+## Note to self
+
+There's special handling for Note-to-Self:
+
+- `<firstName at>` are never shown so those settings don't have any affect
 
