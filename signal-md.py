@@ -72,6 +72,8 @@ SETTING_INCLUDE_QUOTE = "include-quote"
 SETTING_COLON_AFTER_CONTEXT = "colon-after-context" 
 SETTING_TIME_NAME_SEPARATE = "time-name-separate"
 SETTING_MEDIA_SUBFOLDER = "media-subfolder"
+SETTING_IMAGE_EMBED = "image-embed"
+SETTING_IMAGE_WIDTH = "image-width"
 SETTING_ARCHIVE_FOLDER = "archive-folder"
 SETTING_OUTPUT_FOLDER = "output-folder"
 SETTING_GROUPS_FOLDER = "groups-folder"
@@ -150,6 +152,8 @@ sourceFolder = "."
 messagesFile = os.path.join(sourceFolder, "messages.json")
 attachmentsFolder = os.path.join(sourceFolder, "attachments")
 mediaSubFolder = "media"
+imageEmbed = True
+imageWidth = 150
 archiveFolder = "archive"
 outputFolder = "output"
 groupsFolder = os.path.join(outputFolder, "groups")
@@ -188,6 +192,50 @@ class Attachment:
         self.height = 0
         self.voiceNote = False
 
+    def isImage(self):
+        isImage = False
+
+        if (self.type[:5] == "image"):
+            isImage = True
+
+        return isImage
+
+    # Get the file name with suffix based on it's content type
+    def withSuffix(self):
+
+        global mimeTypes
+        
+        fileName = self.id
+
+        try:
+            suffix = mimeTypes[self.type]
+            if (len(suffix)):
+                fileName += "." + suffix 
+        except:
+            print(getStr(STR_UNKNOWN_MIME_TYPE) + ": '" + self.type + "' (" + self.id + ')')
+
+        return fileName
+
+    # Generates the Markdown for media links e.g. [[photo.jpg]]
+    def generateLink(self):
+            
+        global imageEmbed
+        global imageWidth
+        global mediaSubFolder
+
+        link = ""
+
+        fileName = os.path.join(mediaSubFolder, self.withSuffix())
+        if (len(fileName)):
+            if (self.isImage() and imageEmbed):
+                link = "!"
+            link += "[[" + fileName
+            if (self.isImage() and imageWidth):
+                link += "|" + str(imageWidth)
+            link += "]]" + NEW_LINE
+
+        return link
+
 # The message being replied to, if this is a reply vs. a new message
 class Quote:
     def __init__(self):
@@ -216,7 +264,7 @@ class Message:
         self.body = ""            # actual content of the message
         self.processed = False    # True if the message been dealt with
         self.quote = Quote()      # quoted text if replying
-        self.attachments = [Attachment()]
+        self.attachments = []
 
     def __str__(self):
         output = str(self.timeStamp)
@@ -238,53 +286,6 @@ class Message:
     def getTimeStr(self):
         return time.strftime("%H:%M", self.timeStr)
 
-# format a message in Markdown
-def getMarkdown(message):
-
-    global strings
-    global language
-    global people
-
-    # #todo eventually pass these settings as an object
-    global includeTimestamp
-    global colonAfterContext
-    global includeQuote
-    global timeNameSeparate
-
-    text = ""
-
-    if (timeNameSeparate):
-        text += NEW_LINE + message.timeStr + NEW_LINE
-
-    firstName = getFirstNameByNumber(message.phoneNumber, people)
-
-    # don't include first name if Note-to-Self since I know who I am!
-    if (not message.isNoteToSelf()):
-        text += firstName
-
-    if (not timeNameSeparate and includeTimestamp):
-        if (not message.isNoteToSelf()):
-            text += " " + getStr(STR_AT) + " "
-        text += message.timeStr
-
-    if (colonAfterContext):
-        text += ":" 
-        
-    if (not timeNameSeparate):
-        text += NEW_LINE
-    
-    if (includeQuote):
-        text += MD_QUOTE
-    
-        if (len(message.quote.text)):
-            text += MD_QUOTE + message.quote.authorName + ": "
-            text += message.quote.text 
-            text += NEW_LINE + MD_QUOTE + NEW_LINE + MD_QUOTE
-
-    text += message.body + NEW_LINE + NEW_LINE
-
-    return text
-
 class DatedMessages:
     def __init__(self):
         self.dateStr = ""
@@ -304,7 +305,7 @@ class Group:
         self.id = ""
         self.description = ""
         self.members = [] # collection of `Person.slug`s
-        self.messages = [DatedMessages()] # collection of messages by day
+        self.messages = [] # collection of messages by day
 
 def loadMimeTypes():
 
@@ -332,6 +333,9 @@ def loadSettings():
     global colonAfterContext
     global timeNameSeparate
     global mediaSubFolder
+    global imageEmbed
+    global imageWidth
+    global mediaSubFolder
     global archiveFolder
     global outputFolder
     global groupsFolder
@@ -354,6 +358,8 @@ def loadSettings():
         outputFolder = settings[SETTING_OUTPUT_FOLDER]
         groupsFolder = settings[SETTING_GROUPS_FOLDER]
         mediaSubFolder = settings[SETTING_MEDIA_SUBFOLDER]
+        imageEmbed = settings[SETTING_IMAGE_EMBED]
+        imageWidth = settings[SETTING_IMAGE_WIDTH]
         dailyNotesFolder = settings[SETTING_DAILY_NOTES_FOLDER]
         includeTimestamp = bool(settings[SETTING_INCLUDE_TIMESTAMP])
         includeQuote = bool(settings[SETTING_INCLUDE_QUOTE])
@@ -531,6 +537,72 @@ def createGroupFolders(groups, folder):
 
 # -----------------------------------------------------------------------------
 #
+# Format a Message object in Markdown
+#
+# Parameters:
+#
+#    - message - the message being converted to Markdown
+#    - mediaSubFolder - where attachments are found
+#
+# Assumptions:
+# 
+#    - "messages" with attachements don't have an actual body, i.e. text 
+#
+# -----------------------------------------------------------------------------
+def getMarkdown(message, mediaSubFolder):
+
+    global strings
+    global language
+    global people
+
+    # #todo eventually pass these settings as an object
+    global includeTimestamp
+    global colonAfterContext
+    global includeQuote
+    global timeNameSeparate
+
+    text = ""
+
+    if (timeNameSeparate):
+        text += NEW_LINE + message.timeStr + NEW_LINE
+
+    firstName = getFirstNameByNumber(message.phoneNumber, people)
+
+    # don't include first name if Note-to-Self since I know who I am!
+    if (not message.isNoteToSelf()):
+        text += firstName
+
+    if (not timeNameSeparate and includeTimestamp):
+        if (not message.isNoteToSelf()):
+            text += " " + getStr(STR_AT) + " "
+        text += message.timeStr
+
+    if (colonAfterContext):
+        text += ":" 
+        
+    if (not timeNameSeparate):
+        text += NEW_LINE
+    
+    for attachment in message.attachments:
+        text += attachment.generateLink()
+
+    if (includeQuote and len(message.quote.text)):
+        text += MD_QUOTE
+    
+        if (len(message.quote.text)):
+            text += MD_QUOTE + message.quote.authorName + ": "
+            text += message.quote.text 
+            text += NEW_LINE + MD_QUOTE + NEW_LINE + MD_QUOTE
+
+    if (len(message.body)):
+        text += MD_QUOTE + message.body + NEW_LINE 
+    
+    text += NEW_LINE
+
+    return text
+
+# -----------------------------------------------------------------------------
+#
 # Grab the attachments meta data from the message.
 # Parameters:
 # 
@@ -664,11 +736,10 @@ def extractMessage(type, line, people, message):
         # the destination is not always present
         try:
             message.destinationUUID = jsonSent[JSON_DESTINATION][JSON_UUID]
+            toPerson = getPersonByUUID(message.destinationUUID, people)
+            message.destinationSlug = toPerson.slug
         except:
             pass
-
-        toPerson = getPersonByUUID(message.destinationUUID, people)
-        message.destinationSlug = toPerson.slug
 
     try:
         message.body = jsonMessage[JSON_BODY]
@@ -875,12 +946,16 @@ def addMessages(messages, people, groups, mySlug):
     return
 
 def getFrontMatter(message, meSlug):
+
+    global groups
     
     frontMatter = YAML_DASHES 
     frontMatter += YAML_TAGS + ": [" + TAG_CHAT + "]" + NEW_LINE
     frontMatter += YAML_PERSON_SLUGS + ": [" + meSlug 
+
     if (len(message.destinationSlug) and message.destinationSlug != meSlug):
         frontMatter += ", " + message.destinationSlug
+    
     elif (len(message.groupSlug)):
         for group in groups:
             if (group.slug == message.groupSlug):
@@ -890,6 +965,7 @@ def getFrontMatter(message, meSlug):
 
     elif (len(message.sourceSlug) and message.sourceSlug != meSlug):
         frontMatter += ", " + message.sourceSlug
+
     frontMatter += "]" + NEW_LINE
     frontMatter += YAML_DATE + ": " + message.dateStr + NEW_LINE
     frontMatter += YAML_APP_SLUG + ": " + YAML_APP_SIGNAL + NEW_LINE
@@ -970,10 +1046,11 @@ def openOutputFile(fileName):
 #
 #   - entity - a Person or a Group object
 #   - outputFolder - root folder for the markdown files go
+#   - mediaSubFolder - where the attachements go 
 #   - meSlug - unique short label identifying myself in `people.json`
 #
 # -----------------------------------------------------------------------------
-def createMarkdownFile(entity, outputFolder, meSlug):
+def createMarkdownFile(entity, outputFolder, mediaSubFolder, meSlug):
 
     exists = False
     
@@ -992,7 +1069,7 @@ def createMarkdownFile(entity, outputFolder, meSlug):
                     outputFile.write(frontMatter)
          
                 try:
-                    outputFile.write(getMarkdown(message))
+                    outputFile.write(getMarkdown(message, mediaSubFolder))
                     outputFile.close()
                 except Exception as exception:
                     pass
@@ -1006,9 +1083,9 @@ def createMarkdownFile(entity, outputFolder, meSlug):
 #   - meSlug - short string identifying myself in `people.json`
 #
 # -----------------------------------------------------------------------------
-def generateMarkdownFiles(collection, outputFolder, meSlug):
+def generateMarkdownFiles(collection, outputFolder, mediaSubFolder, meSlug):
     for item in collection:
-        createMarkdownFile(item, outputFolder, meSlug)
+        createMarkdownFile(item, outputFolder, mediaSubFolder, meSlug)
     return
 
 # -----------------------------------------------------------------------------
@@ -1039,13 +1116,9 @@ def moveAttachments(entities, outputFolder, subFolder):
                 destFolder = os.path.join(destFolder, subFolder)
                 for attachment in message.attachments:
                     if (len(attachment.id)):
-                        destFile = os.path.join(destFolder,attachment.id)
-                        try:
-                            destFile += "." + mimeTypes[attachment.type]      
-                        except:
-                            print(getStr(STR_UNKNOWN_MIME_TYPE) + ": '" + attachment.type + "' (" + attachment.id + ')')
-                        
                         sourceFile = os.path.join(attachmentsFolder, attachment.id)
+                        destFile = os.path.join(destFolder, attachment.withSuffix())
+
                         try:
                             shutil.copyfile(sourceFile, destFile)
                         except:
@@ -1065,6 +1138,8 @@ print(SETTING_ATTACHMENTS_SUB_FOLDER + ": " + str(attachmentsFolder))
 print(SETTING_ARCHIVE_FOLDER + ": " + str(archiveFolder))
 print(SETTING_OUTPUT_FOLDER + ": " + str(outputFolder))
 print(SETTING_MEDIA_SUBFOLDER + ": " + str(mediaSubFolder))
+print(SETTING_IMAGE_EMBED + ": " + str(imageEmbed))
+print(SETTING_IMAGE_WIDTH + ": " + str(imageWidth))
 print(SETTING_FOLDER_PER_PERSON + ": " + str(folderPerPerson))
 print(SETTING_FILE_PER_PERSON + ": " + str(filePerPerson))
 print(SETTING_FILE_PER_DAY + ": " + str(filePerDay))
@@ -1104,5 +1179,5 @@ if (os.path.exists(messagesFile) and loadMessages(destFile, messages)):
     addMessages(messages, people, groups, mySlug)
     moveAttachments(people, outputFolder, mediaSubFolder)
     moveAttachments(groups, groupsFolder, mediaSubFolder)
-    generateMarkdownFiles(people, outputFolder, mySlug)
-    generateMarkdownFiles(groups, groupsFolder, mySlug)
+    generateMarkdownFiles(people, outputFolder, mediaSubFolder, mySlug)
+    generateMarkdownFiles(groups, groupsFolder, mediaSubFolder, mySlug)

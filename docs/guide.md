@@ -284,6 +284,26 @@ To place media files in same folder as the messages, use:
 "media-subfolder":""
 ```
 
+### Image embed
+
+The `image-embed` flag adds a `!` in front of the image link `[[]]` which will render the image in the output file when viewed in an app like Obsidian.
+
+For example if the attachment file is `1997332635961492225` and it's a jpeg, the following Markdown will be generated:
+
+```
+![[media/1997332635961492225.jpg]]
+```
+
+### Image width
+
+The `image-width` flag adds a `|x` inside of the image link `[[]]` which tells the Markdown editor to render the media in `x` pixels wide. This is supported in Obsidian and is handy so the media files e.g. images don't overtake the entire page when you're viewing it.
+
+For example if this is set to `100`, the attachment file is `1997332635961492225`, and it's a jpeg, the following Markdown will be generated:
+
+```
+![[media/1997332635961492225.jpg|150]]
+```
+
 ### Daily Notes folder
 
 If `daily-notes-folder` is a non-empty string, then messages to yourself are appended to dated files in the daily notes folder.

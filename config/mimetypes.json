@@ -8,7 +8,7 @@
 	"image/jpeg":"jpg",
 	"image/gif":"gif",
 	"image/png":"png",
-	"video/mpeg":"mpgeg",
+	"video/mpeg":"mpeg",
 	"video/mpeg3":"mpg3",
 	"video/mpeg4":"mp4",
     "video/mp3":"mp3",
