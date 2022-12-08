@@ -104,6 +104,8 @@ JSON_GROUPV2 = "groupV2"
 JSON_GROUP_ID = "id"
 JSON_DESTINATION = "destination"
 JSON_UUID = "uuid"
+JSON_TARGET_SENT_TIMESTAMP = "targetSentTimestamp"
+JSON_TARGET_AUTHOR = "targetAuthor"
 
 JSON_QUOTE = "quote"
 JSON_QUOTE_ID = "id"
@@ -245,6 +247,14 @@ class Quote:
         self.authorName = "" # name of the person being quoted
         self.text = ""       # text being quoted
 
+# Typically an emoji reaction to someone's message
+class Reaction:
+    def __init__(self):
+        self.emoji = ""
+        self.targetAuthorUUID = "" # peron being reacted to
+        self.targetTimeSent = 0 # which timestamp the emoji relates to
+        self.sourceSlug = "" # person who had the reaction
+
 # An actual signal message
 # 
 # - If groupSlug is non-blank, then personSlug will be blank
@@ -262,9 +272,11 @@ class Message:
         self.destinationUUID = "" # UUID of who the message was sent to
         self.destinationSlug = "" # `person-slug` who the message was sent to
         self.body = ""            # actual content of the message
+        self.targetSentTimestamp = "" # which timestamp the emoji relates to
         self.processed = False    # True if the message been dealt with
         self.quote = Quote()      # quoted text if replying
         self.attachments = []
+        self.reactions = []
 
     def __str__(self):
         output = str(self.timeStamp)
@@ -298,7 +310,7 @@ class Person:
         self.slug = ""
         self.firstName = ""
         self.folderCreated = False
-        self.messages = [DatedMessages()]  # collection of messages by day
+        self.messages = []  # collection of messages by day
 
 class Group:
     def __init__(self):
@@ -452,6 +464,17 @@ def getPersonByNumber(number, people):
         if (person.phoneNumber == number):
             return person
 
+# Lookup a person from their phone number
+def getFirstNameBySlug(slug):
+
+    firstName = ""
+
+    for person in people:
+        if (person.slug == slug):
+            firstName = person.firstName
+   
+    return firstName
+
 # Lookup a person from their UUID
 def getPersonByUUID(uuid, people):
     for person in people:
@@ -560,6 +583,7 @@ def getMarkdown(message, mediaSubFolder):
     global colonAfterContext
     global includeQuote
     global timeNameSeparate
+    global includeReactions
 
     text = ""
 
@@ -589,15 +613,26 @@ def getMarkdown(message, mediaSubFolder):
     if (includeQuote and len(message.quote.text)):
         text += MD_QUOTE
     
-        if (len(message.quote.text)):
+        lengthOfQuotedText = len(message.quote.text)
+        if (lengthOfQuotedText):
             text += MD_QUOTE + message.quote.authorName + ": "
-            text += message.quote.text 
+            quotedText = message.quote.text[:76]
+            lastSpace = quotedText.rfind(' ')
+            text += quotedText[:lastSpace] 
+            if (lengthOfQuotedText > 76):
+                text += " ..."
             text += NEW_LINE + MD_QUOTE + NEW_LINE + MD_QUOTE
 
     if (len(message.body)):
-        text += MD_QUOTE + message.body + NEW_LINE 
+        text += MD_QUOTE + message.body + NEW_LINE
+
+    if (includeReactions and len(message.reactions)):
+        text += MD_QUOTE + NEW_LINE + MD_QUOTE
+        for reaction in message.reactions:
+            firstName = getFirstNameBySlug(reaction.sourceSlug)
+            text += reaction.emoji + "*" + firstName.lower() + "*   "
     
-    text += NEW_LINE
+    text += NEW_LINE + NEW_LINE
 
     return text
 
@@ -657,6 +692,27 @@ def extractAttachmentData(jsonAttachments, message):
         i += 1
 
     return i
+
+# Lookup a message by it's timestamp (and author) and add the reaction to it
+#
+# Returns:
+#
+#    - True if the message was found
+#    - False if the message was not found
+#
+def addReactionToMesssage(reaction):
+    
+    global messages
+
+    result = False
+
+    for message in messages:
+        if (message.timeStamp == reaction.targetTimeSent):
+            message.reactions.append(reaction)
+            result = True
+            break
+
+    return result
 
 # -----------------------------------------------------------------------------
 #
@@ -745,8 +801,15 @@ def extractMessage(type, line, people, message):
         message.body = jsonMessage[JSON_BODY]
     except:
         try:
-            message.body = jsonMessage[JSON_REACTION][JSON_EMOJI]
-        except: 
+            reaction = Reaction()
+            source = getPersonByUUID(message.sourceUUID, people)
+            reaction.sourceSlug = source.slug
+            jsonReaction = jsonMessage[JSON_REACTION]
+            reaction.emoji = jsonReaction[JSON_EMOJI]
+            reaction.targetAuthorUUID = jsonReaction[JSON_TARGET_AUTHOR]
+            reaction.targetTimeSent = jsonReaction[JSON_TARGET_SENT_TIMESTAMP]
+            addReactionToMesssage(reaction)
+        except Exception as e:
             pass
 
     # see if it's a reply
