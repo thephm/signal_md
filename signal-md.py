@@ -30,7 +30,8 @@ PEOPLE_FILE_NAME  = os.path.join(CONFIG_FOLDER, "people.json")
 GROUPS_FILE_NAME  = os.path.join(CONFIG_FOLDER, "groups.json")
 MIME_TYPES_FILE_NAME = os.path.join(CONFIG_FOLDER, "mimetypes.json")
 MESSAGE_FILE_NAME = "messages.json"
-MESSAGES_COPY_FILE_NAME = "messages_copy.json"
+MESSAGES_COPY_FILE_NAME = "messages_copy"
+MESSAGES_SUFFIX = "json"
 
 # string fields
 LANGUAGE_FIELD = "language"
@@ -82,6 +83,8 @@ SETTING_FOLDER_PER_PERSON = "folder-per-person"
 SETTING_FILE_PER_PERSON = "file-per-person"
 SETTING_FILE_PER_DAY = "file-per-day"
 SETTING_DAILY_NOTES_FOLDER = "daily-notes-folder"
+
+MAX_LEN_QUOTED_TEXT = 70
 
 # signald message types
 JSON_INCOMING_MESSAGE = "IncomingMessage"
@@ -155,7 +158,7 @@ messagesFile = os.path.join(sourceFolder, "messages.json")
 attachmentsFolder = os.path.join(sourceFolder, "attachments")
 mediaSubFolder = "media"
 imageEmbed = True
-imageWidth = 150
+imageWidth = 450
 archiveFolder = "archive"
 outputFolder = "output"
 groupsFolder = os.path.join(outputFolder, "groups")
@@ -550,6 +553,19 @@ def createPersonFolders(people, folder, mySlug):
         except Exception as e:
             print(e)
 
+# Trim text to MAX_LEN_QUOTED_TEXT but don't cut off any words
+def myTrim(text):
+    
+    if (len(text) > MAX_LEN_QUOTED_TEXT):
+        result = text[:MAX_LEN_QUOTED_TEXT]
+        lastSpace = result.rfind(' ')
+        result += result[:lastSpace] 
+        result += " ..."
+    else: 
+        result = text
+
+    return result
+
 # create a folder for the group messages
 def createGroupFolders(groups, folder):
     try:
@@ -609,30 +625,36 @@ def getMarkdown(message, mediaSubFolder):
     
     for attachment in message.attachments:
         text += attachment.generateLink()
+    
+    text += MD_QUOTE
 
     if (includeQuote and len(message.quote.text)):
-        text += MD_QUOTE
     
         lengthOfQuotedText = len(message.quote.text)
         if (lengthOfQuotedText):
             text += MD_QUOTE + message.quote.authorName + ": "
-            quotedText = message.quote.text[:76]
-            lastSpace = quotedText.rfind(' ')
-            text += quotedText[:lastSpace] 
-            if (lengthOfQuotedText > 76):
+            quotedText = message.quote.text
+            if (lengthOfQuotedText > MAX_LEN_QUOTED_TEXT):
+                quotedText = quotedText.quote.text[:MAX_LEN_QUOTED_TEXT]
+                lastSpace = quotedText.rfind(' ')
+                text += quotedText[:lastSpace] 
                 text += " ..."
+            else: 
+                text += quotedText
+
             text += NEW_LINE + MD_QUOTE + NEW_LINE + MD_QUOTE
 
     if (len(message.body)):
-        text += MD_QUOTE + message.body + NEW_LINE
+        text += message.body + NEW_LINE
 
     if (includeReactions and len(message.reactions)):
         text += MD_QUOTE + NEW_LINE + MD_QUOTE
         for reaction in message.reactions:
             firstName = getFirstNameBySlug(reaction.sourceSlug)
             text += reaction.emoji + "*" + firstName.lower() + "*   "
-    
-    text += NEW_LINE + NEW_LINE
+        text += NEW_LINE
+
+    text += NEW_LINE
 
     return text
 
@@ -1227,15 +1249,18 @@ createGroupFolders(groups, groupsFolder)
 # perfectly this will actually move it #todo
 try:
     Path(archiveFolder).mkdir(parents=True, exist_ok=True)
+    nowStr = datetime.strftime(datetime.now(), '%Y-%m-%d')
+    MESSAGES_COPY_FILE_NAME = "messages_" + nowStr + "." + MESSAGES_SUFFIX
     destFile = os.path.join(archiveFolder, MESSAGES_COPY_FILE_NAME)
+    try:
+        shutil.copyfile(messagesFile, destFile)
+    except Exception as e:
+        print(getStr(STR_COULD_NOT_COPY_MESSAGES_FILE) + ": " + messagesFile)
+        print(e)
+
 except Exception as e:
     print(e)
 
-try:
-    shutil.copyfile(messagesFile, destFile)
-except Exception as e:
-    print(getStr(STR_COULD_NOT_COPY_MESSAGES_FILE) + ": " + messagesFile)
-    print(e)
 
 messages = []
 if (os.path.exists(messagesFile) and loadMessages(destFile, messages)):

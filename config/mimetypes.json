@@ -4,6 +4,7 @@
     "text/x-markdown":"md",
 	"text/csv":"csv",
 	"text/html":"html",
+    "text/css":"css",
 	"text/vcard":"vcf",
 	"image/jpeg":"jpg",
 	"image/gif":"gif",
