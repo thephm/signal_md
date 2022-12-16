@@ -16,10 +16,11 @@ NEW_LINE = "\n"
 # YAML front matter 
 YAML_DASHES = "---" + NEW_LINE
 YAML_PERSON_SLUGS = "person-slugs"
-YAML_APP_SLUG = "app-slug"
+YAML_SERVICE_SLUG = "service-slug"
 YAML_TAGS = "tags"
 YAML_DATE = "date"
-YAML_APP_SIGNAL = "signal"
+YAML_TIME = "time"
+YAML_SERVICE_SIGNAL = "signal"
 TAG_CHAT = "chat"
 
 # files
@@ -28,7 +29,7 @@ SETTINGS_FILE_NAME= os.path.join(CONFIG_FOLDER, "settings.json")
 STRINGS_FILE_NAME = os.path.join(CONFIG_FOLDER, "strings.json")
 PEOPLE_FILE_NAME  = os.path.join(CONFIG_FOLDER, "people.json")
 GROUPS_FILE_NAME  = os.path.join(CONFIG_FOLDER, "groups.json")
-MIME_TYPES_FILE_NAME = os.path.join(CONFIG_FOLDER, "mimetypes.json")
+MIME_TYPES_FILE_NAME = os.path.join(CONFIG_FOLDER, "MIMETypes.json")
 MESSAGE_FILE_NAME = "messages.json"
 MESSAGES_COPY_FILE_NAME = "messages_copy"
 MESSAGES_SUFFIX = "json"
@@ -51,9 +52,10 @@ STR_FAILED_TO_READ_LINE = 5
 STR_FAILED_TO_WRITE = 6
 STR_COULD_NOT_LOAD_MIME_TYPES = 7
 STR_UNKNOWN_MIME_TYPE = 8
-STR_COULD_NOT_COPY_THE_ATTACHMENT = 9
-STR_COULD_NOT_COPY_MESSAGES_FILE = 10
+STR_COULD_NOT_MOVE_THE_ATTACHMENT = 9
+STR_COULD_NOT_MOVE_MESSAGES_FILE = 10
 STR_COULD_NOT_OPEN_MESSAGES_FILE = 11
+STR_COULD_CREATE_ARCHIVE_FOLDER = 12
 
 # within array of string fields (after loaded)
 STRINGS_LANGUAGE_INDEX = 0
@@ -148,31 +150,31 @@ people = []
 person = []
 groups = []
 settings = []
-strings = []
+Strings = []
 
 # set the default values for the settings
-language = ENGLISH # English
-mySlug = ""
-sourceFolder = "."
-messagesFile = os.path.join(sourceFolder, "messages.json")
-attachmentsFolder = os.path.join(sourceFolder, "attachments")
-mediaSubFolder = "media"
-imageEmbed = True
-imageWidth = 450
-archiveFolder = "archive"
-outputFolder = "output"
-groupsFolder = os.path.join(outputFolder, "groups")
-dailyNotesFolder = ""
-includeTimestamp = True
-includeQuote = True
-colonAfterContext = False
-includeReactions = False
-timeNameSeparate = False
-folderPerPerson = True
-filePerPerson = True
-filePerDay = True
+Language = ENGLISH # English
+MySlug = ""
+SourceFolder = "."
+MessagesFile = os.path.join(SourceFolder, "messages.json")
+AttachmentsFolder = os.path.join(SourceFolder, "attachments")
+MediaSubFolder = "media"
+ImageEmbed = True
+ImageWidth = 450
+ArchiveFolder = "archive"
+OutputFolder = "output"
+GroupsFolder = os.path.join(OutputFolder, "groups")
+DailyNotesFolder = ""
+IncludeTimestamp = True
+IncludeQuote = True
+ColonAfterContext = False
+IncludeReactions = False
+TimeNameSeparate = False
+FolderPerPerson = True
+FilePerPerson = True
+FilePerDay = True
 
-mimeTypes = []
+MIMETypes = []
 
 # not used yet, thinking about it
 class Setting:
@@ -208,12 +210,12 @@ class Attachment:
     # Get the file name with suffix based on it's content type
     def withSuffix(self):
 
-        global mimeTypes
+        global MIMETypes
         
         fileName = self.id
 
         try:
-            suffix = mimeTypes[self.type]
+            suffix = MIMETypes[self.type]
             if (len(suffix)):
                 fileName += "." + suffix 
         except:
@@ -224,19 +226,21 @@ class Attachment:
     # Generates the Markdown for media links e.g. [[photo.jpg]]
     def generateLink(self):
             
-        global imageEmbed
-        global imageWidth
-        global mediaSubFolder
+        global ImageEmbed
+        global ImageWidth
+        global MediaSubFolder
 
         link = ""
 
-        fileName = os.path.join(mediaSubFolder, self.withSuffix())
+        # originally I would include 'media/file.jpg' but since Obsidian
+        # finds any file in the vault, no need to tell it where it is
+        fileName = self.withSuffix()
         if (len(fileName)):
-            if (self.isImage() and imageEmbed):
+            if (self.isImage() and ImageEmbed):
                 link = "!"
             link += "[[" + fileName
-            if (self.isImage() and imageWidth):
-                link += "|" + str(imageWidth)
+            if (self.isImage() and ImageWidth):
+                link += "|" + str(ImageWidth)
             link += "]]" + NEW_LINE
 
         return link
@@ -301,6 +305,10 @@ class Message:
     def getTimeStr(self):
         return time.strftime("%H:%M", self.timeStr)
 
+    def hasAttachment(self):
+        if len(self.attachments): return True
+        else: return False
+
 class DatedMessages:
     def __init__(self):
         self.dateStr = ""
@@ -322,15 +330,15 @@ class Group:
         self.members = [] # collection of `Person.slug`s
         self.messages = [] # collection of messages by day
 
-def loadMimeTypes():
+def loadMIMETypes():
 
-    global mimeTypes
+    global MIMETypes
 
     result = True
 
     try:
-        mimeTypesFile = open(MIME_TYPES_FILE_NAME, 'r')
-        mimeTypes = json.load(mimeTypesFile)
+        MIMETypesFile = open(MIME_TYPES_FILE_NAME, 'r')
+        MIMETypes = json.load(MIMETypesFile)
     except:
         result = False
         print(getStr(STR_COULD_NOT_LOAD_MIME_TYPES))
@@ -338,52 +346,52 @@ def loadMimeTypes():
     return result
 
 def loadSettings():
-    global language
-    global mySlug
-    global sourceFolder
-    global messagesFile
-    global attachmentsFolder
-    global includeTimestamp
-    global includeQuote
-    global colonAfterContext
-    global timeNameSeparate
-    global mediaSubFolder
-    global imageEmbed
-    global imageWidth
-    global mediaSubFolder
-    global archiveFolder
-    global outputFolder
-    global groupsFolder
-    global includeReactions
-    global folderPerPerson
-    global filePerPerson
-    global filePerDay
-    global dailyNotesFolder
+    global Language
+    global MySlug
+    global SourceFolder
+    global MessagesFile
+    global AttachmentsFolder
+    global IncludeTimestamp
+    global IncludeQuote
+    global ColonAfterContext
+    global TimeNameSeparate
+    global MediaSubFolder
+    global ImageEmbed
+    global ImageWidth
+    global MediaSubFolder
+    global ArchiveFolder
+    global OutputFolder
+    global GroupsFolder
+    global IncludeReactions
+    global FolderPerPerson
+    global FilePerPerson
+    global FilePerDay
+    global DailyNotesFolder
 
     settingsFile = open(SETTINGS_FILE_NAME, 'r')
     settings = json.load(settingsFile)
 
     try:
-        language = int(settings[SETTING_LANGUAGE])
-        mySlug = settings[SETTING_MY_SLUG]
-        sourceFolder = settings[SETTING_SOURCE_FOLDER]
-        messagesFile = os.path.join(sourceFolder, settings[SETTING_MESSAGES_FILE])
-        attachmentsFolder = os.path.join(sourceFolder,settings[SETTING_ATTACHMENTS_SUB_FOLDER])
-        archiveFolder = settings[SETTING_ARCHIVE_FOLDER]
-        outputFolder = settings[SETTING_OUTPUT_FOLDER]
-        groupsFolder = settings[SETTING_GROUPS_FOLDER]
-        mediaSubFolder = settings[SETTING_MEDIA_SUBFOLDER]
-        imageEmbed = settings[SETTING_IMAGE_EMBED]
-        imageWidth = settings[SETTING_IMAGE_WIDTH]
-        dailyNotesFolder = settings[SETTING_DAILY_NOTES_FOLDER]
-        includeTimestamp = bool(settings[SETTING_INCLUDE_TIMESTAMP])
-        includeQuote = bool(settings[SETTING_INCLUDE_QUOTE])
-        colonAfterContext = bool(settings[SETTING_COLON_AFTER_CONTEXT])
-        timeNameSeparate = bool(settings[SETTING_TIME_NAME_SEPARATE])
-        includeReactions = bool(settings[SETTING_INCLUDE_REACTIONS])
-        folderPerPerson = bool(settings[SETTING_FOLDER_PER_PERSON])
-        filePerPerson = bool(settings[SETTING_FILE_PER_PERSON])
-        filePerDay = bool(settings[SETTING_FILE_PER_DAY])
+        Language = int(settings[SETTING_LANGUAGE])
+        MySlug = settings[SETTING_MY_SLUG]
+        SourceFolder = settings[SETTING_SOURCE_FOLDER]
+        MessagesFile = os.path.join(SourceFolder, settings[SETTING_MESSAGES_FILE])
+        AttachmentsFolder = os.path.join(SourceFolder,settings[SETTING_ATTACHMENTS_SUB_FOLDER])
+        ArchiveFolder = settings[SETTING_ARCHIVE_FOLDER]
+        OutputFolder = settings[SETTING_OUTPUT_FOLDER]
+        GroupsFolder = settings[SETTING_GROUPS_FOLDER]
+        MediaSubFolder = settings[SETTING_MEDIA_SUBFOLDER]
+        ImageEmbed = settings[SETTING_IMAGE_EMBED]
+        ImageWidth = settings[SETTING_IMAGE_WIDTH]
+        DailyNotesFolder = settings[SETTING_DAILY_NOTES_FOLDER]
+        IncludeTimestamp = bool(settings[SETTING_INCLUDE_TIMESTAMP])
+        IncludeQuote = bool(settings[SETTING_INCLUDE_QUOTE])
+        ColonAfterContext = bool(settings[SETTING_COLON_AFTER_CONTEXT])
+        TimeNameSeparate = bool(settings[SETTING_TIME_NAME_SEPARATE])
+        IncludeReactions = bool(settings[SETTING_INCLUDE_REACTIONS])
+        FolderPerPerson = bool(settings[SETTING_FOLDER_PER_PERSON])
+        FilePerPerson = bool(settings[SETTING_FILE_PER_PERSON])
+        FilePerDay = bool(settings[SETTING_FILE_PER_DAY])
 
     except:
         pass
@@ -398,7 +406,7 @@ def loadStrings():
         line = line.rstrip()
         x = json.loads(line)
         string = [x[LANGUAGE_FIELD], x[STRING_NUMBER], x[STRING_TEXT]]
-        strings.append(string)
+        Strings.append(string)
 
     stringsFile.close()
 
@@ -446,7 +454,7 @@ def loadGroups(groups):
 # Lookup a person's first name from their phone number
 def getFirstNameByNumber(number, people):
     
-    global strings
+    global Strings
 
     firstName = ""
     person = getPersonByNumber(number, people)
@@ -497,32 +505,28 @@ def getGroupSlug(id, groups):
 # get a string out of strings based on its ID
 def getStr(stringNumber):
 
-    global strings
-    global language
+    global Strings
+    global Language
 
     result = ""
 
-    for string in strings:
+    for string in Strings:
         try:
             if (int(string[STRINGS_NUMBER_INDEX]) == int(stringNumber) and
-                int(string[STRINGS_LANGUAGE_INDEX]) == language):
+                int(string[STRINGS_LANGUAGE_INDEX]) == Language):
                 result = string[STRINGS_TEXT_INDEX]
         except:
             pass
 
     return result
 
-# create a folders if they doesn't exist
-def createFolders(folder):
+# create a folder
+def createFolder(folder):
     
-    global mediaSubFolder
     result = False
 
     try:
         Path(folder).mkdir(parents=True, exist_ok=True)
-        if (len(mediaSubFolder)):
-            mediaFolder = os.path.join(folder, mediaSubFolder)
-            Path(mediaFolder).mkdir(parents=True, exist_ok=True)
         result = True
     except Exception as e:
         print(e)
@@ -531,25 +535,22 @@ def createFolders(folder):
 
 # -----------------------------------------------------------------------------
 #
-# Create a folder for each persons' messages
+# Create folders for each persons' messages
 # 
-# Notes:
-# 
-# - if `dailyNotesFolder` is defined, don't create a messages folder for myself
-#   but do create the `mediaSubFolder` under it if it doesn't exist already
-#
 # -----------------------------------------------------------------------------
 def createPersonFolders(people, folder, mySlug):
-    
-    global dailyNotesFolder
 
+    global MediaSubFolder
+    
     for person in people:
         try:
-            if (not (len(dailyNotesFolder) and person.slug == mySlug)):
-                folderName = os.path.join(folder, person.slug)
-                createFolders(folderName)
-            else:
-                createFolders(os.path.join(dailyNotesFolder, mediaSubFolder))
+            personFolder = os.path.join(folder, person.slug)
+            createFolder(personFolder)
+
+            if (len(MediaSubFolder)):
+                mediaFolder = os.path.join(personFolder, MediaSubFolder)
+                createFolder(mediaFolder)
+
         except Exception as e:
             print(e)
 
@@ -566,11 +567,18 @@ def myTrim(text):
 
     return result
 
-# create a folder for the group messages
+# create the folders for the group messages and media (attachments)
 def createGroupFolders(groups, folder):
+
+    global MediaSubFolder
+
     try:
         for group in groups:
-            createFolders(os.path.join(folder, group.slug))
+            groupFolder = os.path.join(folder, group.slug)
+            createFolder(groupFolder)
+            mediaFolder = os.path.join(groupFolder, MediaSubFolder)
+            createFolder(mediaFolder)
+
     except Exception as e:
         print(e)
 
@@ -583,27 +591,23 @@ def createGroupFolders(groups, folder):
 #    - message - the message being converted to Markdown
 #    - mediaSubFolder - where attachments are found
 #
-# Assumptions:
-# 
-#    - "messages" with attachements don't have an actual body, i.e. text 
-#
 # -----------------------------------------------------------------------------
 def getMarkdown(message, mediaSubFolder):
 
-    global strings
-    global language
+    global Strings
+    global Language
     global people
 
     # #todo eventually pass these settings as an object
-    global includeTimestamp
-    global colonAfterContext
-    global includeQuote
-    global timeNameSeparate
-    global includeReactions
+    global IncludeTimestamp
+    global ColonAfterContext
+    global IncludeQuote
+    global TimeNameSeparate
+    global IncludeReactions
 
     text = ""
 
-    if (timeNameSeparate):
+    if (TimeNameSeparate):
         text += NEW_LINE + message.timeStr + NEW_LINE
 
     firstName = getFirstNameByNumber(message.phoneNumber, people)
@@ -612,15 +616,15 @@ def getMarkdown(message, mediaSubFolder):
     if (not message.isNoteToSelf()):
         text += firstName
 
-    if (not timeNameSeparate and includeTimestamp):
+    if (not TimeNameSeparate and IncludeTimestamp):
         if (not message.isNoteToSelf()):
             text += " " + getStr(STR_AT) + " "
         text += message.timeStr
 
-    if (colonAfterContext):
+    if (ColonAfterContext):
         text += ":" 
         
-    if (not timeNameSeparate):
+    if (not TimeNameSeparate):
         text += NEW_LINE
     
     for attachment in message.attachments:
@@ -628,7 +632,7 @@ def getMarkdown(message, mediaSubFolder):
     
     text += MD_QUOTE
 
-    if (includeQuote and len(message.quote.text)):
+    if (IncludeQuote and len(message.quote.text)):
     
         lengthOfQuotedText = len(message.quote.text)
         if (lengthOfQuotedText):
@@ -647,7 +651,7 @@ def getMarkdown(message, mediaSubFolder):
     if (len(message.body)):
         text += message.body + NEW_LINE
 
-    if (includeReactions and len(message.reactions)):
+    if (IncludeReactions and len(message.reactions)):
         text += MD_QUOTE + NEW_LINE + MD_QUOTE
         for reaction in message.reactions:
             firstName = getFirstNameBySlug(reaction.sourceSlug)
@@ -1030,15 +1034,15 @@ def addMessages(messages, people, groups, mySlug):
 
     return
 
-def getFrontMatter(message, meSlug):
+def getFrontMatter(message, mySlug):
 
     global groups
     
     frontMatter = YAML_DASHES 
     frontMatter += YAML_TAGS + ": [" + TAG_CHAT + "]" + NEW_LINE
-    frontMatter += YAML_PERSON_SLUGS + ": [" + meSlug 
+    frontMatter += YAML_PERSON_SLUGS + ": [" + mySlug 
 
-    if (len(message.destinationSlug) and message.destinationSlug != meSlug):
+    if (len(message.destinationSlug) and message.destinationSlug != mySlug):
         frontMatter += ", " + message.destinationSlug
     
     elif (len(message.groupSlug)):
@@ -1048,36 +1052,79 @@ def getFrontMatter(message, meSlug):
                     frontMatter += ", " + personSlug
                 break
 
-    elif (len(message.sourceSlug) and message.sourceSlug != meSlug):
+    elif (len(message.sourceSlug) and message.sourceSlug != mySlug):
         frontMatter += ", " + message.sourceSlug
 
     frontMatter += "]" + NEW_LINE
     frontMatter += YAML_DATE + ": " + message.dateStr + NEW_LINE
-    frontMatter += YAML_APP_SLUG + ": " + YAML_APP_SIGNAL + NEW_LINE
-    frontMatter += YAML_DASHES
+    frontMatter += YAML_TIME + ": " + message.timeStr + NEW_LINE
+    frontMatter += YAML_SERVICE_SLUG + ": " + YAML_SERVICE_SIGNAL + NEW_LINE
+    frontMatter += YAML_DASHES + NEW_LINE
 
     return frontMatter
 
 # -----------------------------------------------------------------------------
 #
-# Generate the output folder name
+# Generate the output folder name.
+#
+# Notes
+# 
+#   - if it's a regular message, the folder will be the destination person slug
+#   - if it's an attachment, the folder will be the source (sender)
 #
 # Parameters:
 #
 #   - entity: a Person or a Group object
 #   - outputFolder: root folder where the subfolder per-person / files created
 #   - message: the current message being processed
+#   - mySlug: slug of the person who runs this tool
 #
 # -----------------------------------------------------------------------------
-def getOutputFolderName(entity, outputFolder, message):
+def getMediaFolderName(entity, outputFolder, message, mySlug):
 
-    global dailyNotesFolder
+    global DailyNotesFolder
 
     folder = ""
 
     # if the daily notes folder is defined, put the notes-to-self in there
-    if (message.isNoteToSelf() and len(dailyNotesFolder)):
-        folder = dailyNotesFolder
+    if type(entity) == Group:
+        folder = os.path.join(outputFolder, entity.slug)
+    elif message.isNoteToSelf() and len(DailyNotesFolder):
+        folder = DailyNotesFolder
+    elif message.hasAttachment() and message.sourceSlug == mySlug:
+        folder = os.path.join(outputFolder, mySlug)
+    else:
+        folder = os.path.join(outputFolder, entity.slug)
+
+    return folder
+
+# -----------------------------------------------------------------------------
+#
+# Generate the output folder name.
+#
+# Notes
+# 
+#   - if it's a regular message, the folder will be the destination person slug
+#
+# Parameters:
+#
+#   - entity: a Person or a Group object
+#   - outputFolder: root folder where the subfolder per-person / files created
+#   - message: the current message being processed
+#   - mySlug: slug of the person who runs this tool
+#
+# -----------------------------------------------------------------------------
+def getMarkdownFolderName(entity, outputFolder, message, mySlug):
+
+    global DailyNotesFolder
+
+    folder = ""
+
+    # if the daily notes folder is defined, put the notes-to-self in there
+    if type(entity) == Group:
+        folder = os.path.join(outputFolder, entity.slug)
+    elif message.isNoteToSelf() and len(DailyNotesFolder):
+        folder = DailyNotesFolder
     else:
         folder = os.path.join(outputFolder, entity.slug)
 
@@ -1092,11 +1139,12 @@ def getOutputFolderName(entity, outputFolder, message):
 #   - entity: a Person or a Group object
 #   - outputFolder: root folder where the subfolder per-person / files created
 #   - message: the current message being processed
+#   - mySlug: slug of person that runs this tool
 #
 # -----------------------------------------------------------------------------
-def getOutputFileName(entity, outputFolder, message):
+def getMarkdownFileName(entity, outputFolder, message, mySlug):
 
-    folder = getOutputFolderName(entity, outputFolder, message)
+    folder = getMarkdownFolderName(entity, outputFolder, message, mySlug)
     fileName = os.path.join(folder, message.dateStr + OUTPUT_FILE_EXTENSION)
     
     return fileName
@@ -1132,10 +1180,10 @@ def openOutputFile(fileName):
 #   - entity - a Person or a Group object
 #   - outputFolder - root folder for the markdown files go
 #   - mediaSubFolder - where the attachements go 
-#   - meSlug - unique short label identifying myself in `people.json`
+#   - mySlug - unique short label identifying myself in `people.json`
 #
 # -----------------------------------------------------------------------------
-def createMarkdownFile(entity, outputFolder, mediaSubFolder, meSlug):
+def createMarkdownFile(entity, outputFolder, mediaSubFolder, mySlug):
 
     exists = False
     
@@ -1143,14 +1191,14 @@ def createMarkdownFile(entity, outputFolder, mediaSubFolder, meSlug):
 
         for message in datedMessages.messages:
 
-            fileName = getOutputFileName(entity, outputFolder, message)
+            fileName = getMarkdownFileName(entity, outputFolder, message, mySlug)
             exists = os.path.exists(fileName) 
             outputFile = openOutputFile(fileName)
 
             if (outputFile):
                 # add the front matter if this is a new file
                 if (exists == False):
-                    frontMatter = getFrontMatter(message, meSlug)
+                    frontMatter = getFrontMatter(message, mySlug)
                     outputFile.write(frontMatter)
          
                 try:
@@ -1165,12 +1213,12 @@ def createMarkdownFile(entity, outputFolder, mediaSubFolder, meSlug):
 # 
 #   - collection - either people or groups
 #   - outputFolder - where the files will go
-#   - meSlug - short string identifying myself in `people.json`
+#   - mySlug - short string identifying myself in `people.json`
 #
 # -----------------------------------------------------------------------------
-def generateMarkdownFiles(collection, outputFolder, mediaSubFolder, meSlug):
+def generateMarkdownFiles(collection, outputFolder, mediaSubFolder, mySlug):
     for item in collection:
-        createMarkdownFile(item, outputFolder, mediaSubFolder, meSlug)
+        createMarkdownFile(item, outputFolder, mediaSubFolder, mySlug)
     return
 
 # -----------------------------------------------------------------------------
@@ -1184,12 +1232,13 @@ def generateMarkdownFiles(collection, outputFolder, mediaSubFolder, meSlug):
 #   - entities - either a collection of Person or Group objects
 #   - outputFolder - top-level folder where the files will go
 #   - subFolder - media folder to place the attachments
-#
+#   - mySlug - slug of the main person using the tool
+# 
 # -----------------------------------------------------------------------------
-def moveAttachments(entities, outputFolder, subFolder):
+def moveAttachments(entities, outputFolder, subFolder, mySlug):
 
-    global attachmentsFolder
-    global mimeTypes
+    global AttachmentsFolder
+    global MIMETypes
 
     sourceFile = ""
     destFile = ""
@@ -1197,18 +1246,19 @@ def moveAttachments(entities, outputFolder, subFolder):
     for entity in entities:
         for datedMessages in entity.messages:
             for message in datedMessages.messages:
-                destFolder = getOutputFolderName(entity, outputFolder, message)
+                destFolder = getMediaFolderName(entity, outputFolder, message, mySlug)
                 destFolder = os.path.join(destFolder, subFolder)
                 for attachment in message.attachments:
                     if (len(attachment.id)):
-                        sourceFile = os.path.join(attachmentsFolder, attachment.id)
+                        sourceFile = os.path.join(AttachmentsFolder, attachment.id)
                         destFile = os.path.join(destFolder, attachment.withSuffix())
 
-                        try:
-                            shutil.copyfile(sourceFile, destFile)
-                        except:
-                            print(getStr(STR_COULD_NOT_COPY_THE_ATTACHMENT) + ": " + sourceFile)
-
+                        if os.path.exists(sourceFile) and not os.path.exists(destFile):
+                            try: 
+                                shutil.move(sourceFile, destFile)
+                            except Exception as e:
+                                print(getStr(STR_COULD_NOT_MOVE_THE_ATTACHMENT) + ": " + sourceFile + " -> " + destFile)
+                                print(e)
 # main
 
 loadStrings()
@@ -1216,56 +1266,58 @@ loadStrings()
 loadSettings()
 
 # maybe only show this in some verbose mode?
-print(SETTING_LANGUAGE + ": " + str(language))
-print(SETTING_MY_SLUG + ": " + str(mySlug))
-print(SETTING_SOURCE_FOLDER + ": " + sourceFolder)
-print(SETTING_ATTACHMENTS_SUB_FOLDER + ": " + str(attachmentsFolder))
-print(SETTING_ARCHIVE_FOLDER + ": " + str(archiveFolder))
-print(SETTING_OUTPUT_FOLDER + ": " + str(outputFolder))
-print(SETTING_MEDIA_SUBFOLDER + ": " + str(mediaSubFolder))
-print(SETTING_IMAGE_EMBED + ": " + str(imageEmbed))
-print(SETTING_IMAGE_WIDTH + ": " + str(imageWidth))
-print(SETTING_FOLDER_PER_PERSON + ": " + str(folderPerPerson))
-print(SETTING_FILE_PER_PERSON + ": " + str(filePerPerson))
-print(SETTING_FILE_PER_DAY + ": " + str(filePerDay))
-print(SETTING_INCLUDE_TIMESTAMP + ": " + str(includeTimestamp))
-print(SETTING_INCLUDE_REACTIONS + ": " + str(includeReactions))
-print(SETTING_INCLUDE_QUOTE + ": " + str(includeQuote))
-print(SETTING_COLON_AFTER_CONTEXT + ": " + str(colonAfterContext))
-print(SETTING_TIME_NAME_SEPARATE + ": " + str(timeNameSeparate))
-print(SETTING_DAILY_NOTES_FOLDER + ": " + str(dailyNotesFolder))
+print(SETTING_LANGUAGE + ": " + str(Language))
+print(SETTING_MY_SLUG + ": " + str(MySlug))
+print(SETTING_SOURCE_FOLDER + ": " + SourceFolder)
+print(SETTING_ATTACHMENTS_SUB_FOLDER + ": " + str(AttachmentsFolder))
+print(SETTING_ARCHIVE_FOLDER + ": " + str(ArchiveFolder))
+print(SETTING_OUTPUT_FOLDER + ": " + str(OutputFolder))
+print(SETTING_MEDIA_SUBFOLDER + ": " + str(MediaSubFolder))
+print(SETTING_IMAGE_EMBED + ": " + str(ImageEmbed))
+print(SETTING_IMAGE_WIDTH + ": " + str(ImageWidth))
+print(SETTING_FOLDER_PER_PERSON + ": " + str(FolderPerPerson))
+print(SETTING_FILE_PER_PERSON + ": " + str(FilePerPerson))
+print(SETTING_FILE_PER_DAY + ": " + str(FilePerDay))
+print(SETTING_INCLUDE_TIMESTAMP + ": " + str(IncludeTimestamp))
+print(SETTING_INCLUDE_REACTIONS + ": " + str(IncludeReactions))
+print(SETTING_INCLUDE_QUOTE + ": " + str(IncludeQuote))
+print(SETTING_COLON_AFTER_CONTEXT + ": " + str(ColonAfterContext))
+print(SETTING_TIME_NAME_SEPARATE + ": " + str(TimeNameSeparate))
+print(SETTING_DAILY_NOTES_FOLDER + ": " + str(DailyNotesFolder))
 
-loadMimeTypes()
-
-createFolders(dailyNotesFolder)
-
-loadPeople(people)
-createPersonFolders(people, outputFolder, mySlug)
-
-loadGroups(groups)
-createGroupFolders(groups, groupsFolder)
+loadMIMETypes()
 
 # make a copy of the source file for now. Later once everything works
 # perfectly this will actually move it #todo
 try:
-    Path(archiveFolder).mkdir(parents=True, exist_ok=True)
-    nowStr = datetime.strftime(datetime.now(), '%Y-%m-%d')
-    MESSAGES_COPY_FILE_NAME = "messages_" + nowStr + "." + MESSAGES_SUFFIX
-    destFile = os.path.join(archiveFolder, MESSAGES_COPY_FILE_NAME)
+    Path(ArchiveFolder).mkdir(parents=True, exist_ok=True)
+    nowStr = datetime.strftime(datetime.now(), '%Y-%m-%d %H-%m-%S')
+    fileName = "messages_" + nowStr + "." + MESSAGES_SUFFIX
+    destFile = os.path.join(ArchiveFolder, fileName)
     try:
-        shutil.copyfile(messagesFile, destFile)
+        shutil.move(MessagesFile, destFile)
+    
+        createFolder(DailyNotesFolder)
+        createFolder(os.path.join(DailyNotesFolder, MediaSubFolder))
+
+        loadPeople(people)
+        createPersonFolders(people, OutputFolder, MySlug)
+
+        loadGroups(groups)
+        createGroupFolders(groups, GroupsFolder)
+
+        messages = []
+        if (os.path.exists(destFile) and loadMessages(destFile, messages)):
+            addMessages(messages, people, groups, MySlug)
+            moveAttachments(people, OutputFolder, MediaSubFolder, MySlug)
+            moveAttachments(groups, GroupsFolder, MediaSubFolder, MySlug)
+            generateMarkdownFiles(people, OutputFolder, MediaSubFolder, MySlug)
+            generateMarkdownFiles(groups, GroupsFolder, MediaSubFolder, MySlug)
+
     except Exception as e:
-        print(getStr(STR_COULD_NOT_COPY_MESSAGES_FILE) + ": " + messagesFile)
+        print(getStr(STR_COULD_NOT_MOVE_MESSAGES_FILE) + ": " + MessagesFile)
         print(e)
 
 except Exception as e:
+    print(getStr(STR_COULD_CREATE_ARCHIVE_FOLDER) + ": " + MessagesFile)
     print(e)
-
-
-messages = []
-if (os.path.exists(messagesFile) and loadMessages(destFile, messages)):
-    addMessages(messages, people, groups, mySlug)
-    moveAttachments(people, outputFolder, mediaSubFolder)
-    moveAttachments(groups, groupsFolder, mediaSubFolder)
-    generateMarkdownFiles(people, outputFolder, mediaSubFolder, mySlug)
-    generateMarkdownFiles(groups, groupsFolder, mediaSubFolder, mySlug)

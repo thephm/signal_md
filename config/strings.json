@@ -7,6 +7,7 @@
 {"language":"1","number":"6","text":"failed to write"}
 {"language":"1","number":"7","text":"could not load MIME types"}
 {"language":"1","number":"8","text":"unknown MIME type"}
-{"language":"1","number":"9","text":"could not copy the attachment"}
-{"language":"1","number":"10","text":"could not make a copy of the messages file"}
+{"language":"1","number":"9","text":"could not move the attachment"}
+{"language":"1","number":"10","text":"could not move the messages file"}
 {"language":"1","number":"11","text":"could not open the messages file"}
+{"language":"1","number":"12","text":"could not create the archive folder"}
