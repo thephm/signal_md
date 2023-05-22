@@ -13,7 +13,7 @@ with each person defined on a separate row.
 ### Fields
 
 - `number` - the phone number field in the `signalmd` output file
-- `person-slug` - unique ID for the person
+- `person-slug` - unique one-word label for the person
 - `first-name` - person's first name
 
 ### Example
@@ -35,8 +35,8 @@ config\groups.json
 ### Fields
 
 - `id` - the unique ID for this group, see **Finding the group ID**
-- `slug` - one-word label for the group, will be used as the folder name
-- `person-slug` - unique ID for each person, see **Person**
+- `slug` - a one-word label for the group, will be used as the folder name
+- `person-slug` - a unique one-word label for each person, see **Person**
 
 ### Finding the group ID
 
@@ -97,7 +97,7 @@ The `language` setting controls which language the output strings will be in
 
 ### My slug
 
-The `my-slug` setting defines which person you are People config
+The `my-slug` setting defines which person you are in the People config.
 
 #### Example
 
@@ -115,7 +115,7 @@ Then I would set this field as follows in `settings.json`:
 
 ### Timestamp
 
-The `include-timestamp` field controls whether the time that a message was sent is included in the output, or not.
+The `include-timestamp` field controls whether the time that a message was sent is included in the Markdown output, or not.
 
 #### Values
 
