@@ -1,5 +1,9 @@
 # Changes
 
+## 2023-06-18
+
+- refactored to move common code to new repo `message_md` 
+
 ## 2022-12-06
 
 - creating github repo and project

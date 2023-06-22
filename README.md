@@ -13,4 +13,4 @@ Check out the user [guide](docs/guide.md) for how to configure the tool.
 
 ## Licensing
 
-TBD
+Apache License 2.0
