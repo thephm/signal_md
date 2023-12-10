@@ -4,7 +4,6 @@ import json
 import sys
 sys.path.insert(1, '../message_md/')
 import message_md
-import message_md
 import config
 import markdown
 import attachment
