@@ -164,7 +164,7 @@ def extractAttachmentData(jsonAttachments, theMessage):
 def extractMessage(type, line, theMessage, theReaction, theConfig):
 
     timeInSeconds = 0
-    toPerson = person.Person()  
+    toPerson = person.Person()
     author = person.Person() # if a JSON_QUOTE in reply to the author
 
     data = line[JSON_DATA]
@@ -182,7 +182,8 @@ def extractMessage(type, line, theMessage, theReaction, theConfig):
         # convert the time seconds since epoch to a time.struct_time object
         theMessage.time = time.localtime(timeInSeconds)
 
-    except Exception as exception: 
+    except Exception as e:
+        print(e) 
         pass
 
     if type == JSON_DATA_MESSAGE:
@@ -285,6 +286,7 @@ def processLine(line, theMessage, theReaction, theConfig):
         noNumber += 1
 
     if len(account) and len(number):
+
         if account == number:
             extractMessage(JSON_SYNC_MESSAGE, line, theMessage, theReaction, theConfig)
         else:
@@ -297,7 +299,7 @@ def processLine(line, theMessage, theReaction, theConfig):
 
     return result
 
-# parse a line from the signald JSON output file
+# parse a line from the signald output file
 def parseLine(theLine, theMessage, theReaction, theConfig):
 
     result = False
