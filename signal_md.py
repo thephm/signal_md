@@ -197,7 +197,7 @@ def extractMessage(type, line, theMessage, theReaction, theConfig):
         try:
             destPhoneNumber = jsonSent[JSON_DESTINATION][JSON_NUMBER]
             toPerson = theConfig.getPersonByNumber(destPhoneNumber)
-            theMessage.destinationSlug = toPerson.slug
+            theMessage.toSlugs.append(toPerson.slug)
         except:
             pass
 
@@ -206,7 +206,7 @@ def extractMessage(type, line, theMessage, theReaction, theConfig):
     except:
         try:
             source = theConfig.getPersonByNumber(theMessage.phoneNumber)
-            theReaction.sourceSlug = source.slug
+            theReaction.fromSlug = source.slug
             jsonReaction = jsonMessage[JSON_REACTION]
             theReaction.emoji = jsonReaction[JSON_EMOJI]
             theReaction.targetTimeSent = jsonReaction[JSON_TARGET_SENT_TIMESTAMP]
@@ -241,7 +241,7 @@ def extractMessage(type, line, theMessage, theReaction, theConfig):
 
     if len(theMessage.phoneNumber):
         thePerson = theConfig.getPersonByNumber(theMessage.phoneNumber)
-        theMessage.sourceSlug = thePerson.slug
+        theMessage.fromSlug = thePerson.slug
 
     if theMessage.time:
         try:
@@ -292,8 +292,8 @@ def processLine(line, theMessage, theReaction, theConfig):
         else:
             extractMessage(JSON_DATA_MESSAGE, line, theMessage, theReaction, theConfig)
 
-        if len(theMessage.destinationSlug)==0:
-            theMessage.destinationSlug = theConfig.mySlug
+        if not len(theMessage.toSlugs):
+            theMessage.toSlugs.append(theConfig.me.slug)
 
         result = True
 
