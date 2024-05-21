@@ -57,7 +57,7 @@ JSON_ATTACHMENT_FILENAME = "storedFilename"
 JSON_ATTACHMENT_WIDTH = "width"
 JSON_ATTACHMENT_HEIGHT = "height"
 JSON_ATTACHMENT_VOICE_NOTE = "voiceNote"
-JSON_ATTACHMENT_CUSTOM_FILENAME = "customFilename"
+JSON_ATTACHMENT_CUSTOM_FILENAME = "custom_filename"
 
 # -----------------------------------------------------------------------------
 #
@@ -65,7 +65,7 @@ JSON_ATTACHMENT_CUSTOM_FILENAME = "customFilename"
 # Parameters:
 # 
 #   - json - attachments metadata in JSON from the Signal output
-#   - theMessage - the message the attachment(s) came in 
+#   - the_message - the message the attachment(s) came in 
 #
 # Notes
 #   - the attachment metadata comes in a separate message in the JSON output
@@ -81,7 +81,7 @@ JSON_ATTACHMENT_CUSTOM_FILENAME = "customFilename"
 #        'id': 'ChyDimZpbMTPEnAhhUL7', 
 #        'size': 354057, 
 #        'storedFilename': '/signald/attachments/ChyDimZpbMTPEnAhhUL7', 
-#        'customFilename': 'IMG_8409.jpg',
+#        'custom_filename': 'IMG_8409.jpg',
 #        'width': 1200, 
 #        'height': 1600, 
 #        'voiceNote': False, 
@@ -90,31 +90,32 @@ JSON_ATTACHMENT_CUSTOM_FILENAME = "customFilename"
 #        'blurhash': 'LfLf]d-j%1-p~VoyNIogM_WERkWB'
 #    }
 # -----------------------------------------------------------------------------
-def extractAttachmentData(jsonAttachments, theMessage):
-    numAttachments = 0
+def extract_attachment_data(json_attachments, the_message):
     
-    for data in jsonAttachments:
-        theAttachment = attachment.Attachment()
+    num_attachments = 0
+    
+    for data in json_attachments:
+        the_attachment = attachment.Attachment()
         try:
-            theAttachment.type = data[JSON_ATTACHMENT_CONTENT_TYPE]
-            theAttachment.id = data[JSON_ATTACHMENT_ID]
-            theAttachment.size = data[JSON_ATTACHMENT_SIZE]
-            theAttachment.fileName = data[JSON_ATTACHMENT_FILENAME]
+            the_attachment.type = data[JSON_ATTACHMENT_CONTENT_TYPE]
+            the_attachment.id = data[JSON_ATTACHMENT_ID]
+            the_attachment.size = data[JSON_ATTACHMENT_SIZE]
+            the_attachment.filename = data[JSON_ATTACHMENT_FILENAME]
 
             try:
-                theAttachment.customFileName = data[JSON_ATTACHMENT_CUSTOM_FILENAME]
+                the_attachment.custom_filename = data[JSON_ATTACHMENT_CUSTOM_FILENAME]
             except:
                 pass
 
-            theAttachment.width = data[JSON_ATTACHMENT_WIDTH]
-            theAttachment.height = data[JSON_ATTACHMENT_HEIGHT]
-            theAttachment.voiceNote = data[JSON_ATTACHMENT_VOICE_NOTE]
-            theMessage.addAttachment(theAttachment)
-            numAttachments += 1
+            the_attachment.width = data[JSON_ATTACHMENT_WIDTH]
+            the_attachment.height = data[JSON_ATTACHMENT_HEIGHT]
+            the_attachment.voice_note = data[JSON_ATTACHMENT_VOICE_NOTE]
+            the_message.add_attachment(the_attachment)
+            num_attachments += 1
         except:
             pass
 
-    return numAttachments
+    return num_attachments
 
 # -----------------------------------------------------------------------------
 #
@@ -124,9 +125,9 @@ def extractAttachmentData(jsonAttachments, theMessage):
 #
 #   - type - type of message, either JSON_SYNC_MESSAGE or JSON_DATA_MESSAGE
 #   - line - the entire message contents
-#   - theMessage - the target Message object where the values will go
-#   - theReaction - the emoji used, if any
-#   - theConfig - all of the config including Group and Person objects
+#   - the_message - the target Message object where the values will go
+#   - the_reaction - the emoji used, if any
+#   - the_config - all of the config including Group and Person objects
 #
 # Notes:
 #
@@ -161,92 +162,92 @@ def extractAttachmentData(jsonAttachments, theMessage):
 #                     "text":"You are amazing!",
 #                     "mentions":[]
 # -----------------------------------------------------------------------------
-def extractMessage(type, line, theMessage, theReaction, theConfig):
+def extract_message(type, line, the_message, the_reaction, the_config):
 
-    timeInSeconds = 0
-    toPerson = person.Person()
+    time_in_seconds = 0
+    to_person = person.Person()
     author = person.Person() # if a JSON_QUOTE in reply to the author
 
     data = line[JSON_DATA]
     
     try:
-        theMessage.phoneNumber = data[JSON_SOURCE][JSON_NUMBER]
+        the_message.phone_number = data[JSON_SOURCE][JSON_NUMBER]
     except:
         # this seems important, because no number and no clue who sent it,
         # then there should be some error communicatd to the user
         pass 
     
     try:
-        theMessage.timeStamp = data[JSON_TIMESTAMP]
-        timeInSeconds = int(int(data[JSON_TIMESTAMP])/1000)
+        the_message.time_stamp = data[JSON_TIMESTAMP]
+        time_in_seconds = int(int(data[JSON_TIMESTAMP])/1000)
         # convert the time seconds since epoch to a time.struct_time object
-        theMessage.time = time.localtime(timeInSeconds)
+        the_message.time = time.localtime(time_in_seconds)
 
     except Exception as e:
         print(e) 
         pass
 
     if type == JSON_DATA_MESSAGE:
-        jsonMessage = data[JSON_DATA_MESSAGE]
+        json_message = data[JSON_DATA_MESSAGE]
 
     elif type == JSON_SYNC_MESSAGE:
-        jsonSent = data[JSON_SYNC_MESSAGE][JSON_SENT]
-        jsonMessage = jsonSent[JSON_MESSAGE]
+        json_sent = data[JSON_SYNC_MESSAGE][JSON_SENT]
+        json_message = json_sent[JSON_MESSAGE]
 
         # the destination is not always present
         try:
-            destPhoneNumber = jsonSent[JSON_DESTINATION][JSON_NUMBER]
-            toPerson = theConfig.getPersonByNumber(destPhoneNumber)
-            theMessage.toSlugs.append(toPerson.slug)
+            dest_phone_number = json_sent[JSON_DESTINATION][JSON_NUMBER]
+            to_person = the_config.get_person_by_number(dest_phone_number)
+            the_message.to_slugs.append(to_person.slug)
         except:
             pass
 
     try:
-        theMessage.body = jsonMessage[JSON_BODY]
+        the_message.body = json_message[JSON_BODY]
     except:
         try:
-            source = theConfig.getPersonByNumber(theMessage.phoneNumber)
-            theReaction.fromSlug = source.slug
-            jsonReaction = jsonMessage[JSON_REACTION]
-            theReaction.emoji = jsonReaction[JSON_EMOJI]
-            theReaction.targetTimeSent = jsonReaction[JSON_TARGET_SENT_TIMESTAMP]
+            source = the_config.get_person_by_number(the_message.phone_number)
+            the_reaction.from_slug = source.slug
+            json_reaction = json_message[JSON_REACTION]
+            the_reaction.emoji = json_reaction[JSON_EMOJI]
+            the_reaction.target_time_sent = json_reaction[JSON_TARGET_SENT_TIMESTAMP]
         except Exception as e:
             pass
 
     # see if it's a reply
     try:
-        theQuote = jsonMessage[JSON_QUOTE]
-        theMessage.quote.id = theQuote[JSON_QUOTE_ID]
-        theMessage.quote.text = theQuote[JSON_QUOTE_TEXT]
+        the_quote = json_message[JSON_QUOTE]
+        the_message.quote.id = the_quote[JSON_QUOTE_ID]
+        the_message.quote.text = the_quote[JSON_QUOTE_TEXT]
 #       @todo need to refactor this to use phone#
-        theMessage.quote.authorName = author.firstName
-        theMessage.quote.authorSlug = author.slug
+        the_message.quote.author_name = author.first_name
+        the_message.quote.author_slug = author.slug
     except:
         pass
 
     # see if it's a group message
     try:
-        group = jsonMessage[JSON_GROUPV2]
-        groupId = group[JSON_GROUP_ID]
-        theMessage.groupSlug = theConfig.getGroupSlug(groupId)
+        group = json_message[JSON_GROUPV2]
+        group_id = group[JSON_GROUP_ID]
+        the_message.group_slug = the_config.get_group_slug(group_id)
     except:
         pass
 
     # see if it's an attachment
     try:
-        jsonAttachments = jsonMessage[JSON_ATTACHMENTS]
-        extractAttachmentData(jsonAttachments, theMessage)
+        json_attachments = json_message[JSON_ATTACHMENTS]
+        extract_attachment_data(json_attachments, the_message)
     except:
         pass
 
-    if len(theMessage.phoneNumber):
-        thePerson = theConfig.getPersonByNumber(theMessage.phoneNumber)
-        theMessage.fromSlug = thePerson.slug
+    if len(the_message.phone_number):
+        the_person = the_config.get_person_by_number(the_message.phone_number)
+        the_message.fromSlug = the_person.slug
 
-    if theMessage.time:
+    if the_message.time:
         try:
-            theMessage.dateStr = time.strftime("%Y-%m-%d", theMessage.time)
-            theMessage.timeStr = time.strftime("%H:%M", theMessage.time)
+            the_message.dateStr = time.strftime("%Y-%m-%d", the_message.time)
+            the_message.timeStr = time.strftime("%H:%M", the_message.time)
         except Exception as e:
             print(e)
 
@@ -265,7 +266,7 @@ def extractMessage(type, line, theMessage, theReaction, theConfig):
 #            "number":"+14165551313",
 #
 # -----------------------------------------------------------------------------
-def processLine(line, theMessage, theReaction, theConfig):
+def processLine(line, the_message, the_reaction, the_config):
 
     number = 0
     account = 0
@@ -288,44 +289,44 @@ def processLine(line, theMessage, theReaction, theConfig):
     if len(account) and len(number):
 
         if account == number:
-            extractMessage(JSON_SYNC_MESSAGE, line, theMessage, theReaction, theConfig)
+            extract_message(JSON_SYNC_MESSAGE, line, the_message, the_reaction, the_config)
         else:
-            extractMessage(JSON_DATA_MESSAGE, line, theMessage, theReaction, theConfig)
+            extract_message(JSON_DATA_MESSAGE, line, the_message, the_reaction, the_config)
 
-        if not len(theMessage.toSlugs):
-            theMessage.toSlugs.append(theConfig.me.slug)
+        if not len(the_message.to_slugs):
+            the_message.to_slugs.append(the_config.me.slug)
 
         result = True
 
     return result
 
 # parse a line from the signald output file
-def parseLine(theLine, theMessage, theReaction, theConfig):
+def parse_line(the_line, the_message, the_reaction, the_config):
 
     result = False
     
-    jsonMessage = json.loads(theLine)
+    json_message = json.loads(the_line)
 
-    if JSON_TYPE in jsonMessage:
-        if jsonMessage[JSON_TYPE] == JSON_INCOMING_MESSAGE:
-            result = processLine(jsonMessage, theMessage, theReaction, theConfig)
+    if JSON_TYPE in json_message:
+        if json_message[JSON_TYPE] == JSON_INCOMING_MESSAGE:
+            result = processLine(json_message, the_message, the_reaction, theConfig)
 
     return result
 
 # go though each line of the source file and process it by loading each message
 # into a `Message` object and adding it to the `Messages` collection
-def loadMessages(fileName, messages, reactions, theConfig):
+def loadMessages(filename, messages, reactions, the_config):
 
     ignored = 0
     parsed = 0
     errored = 0
-    noBodyOrAttachment = 0
+    no_body_or_attachment = 0
     i = 0
 
     try:
-        sourceFile = open(fileName, 'r', encoding="utf-8")
+        source_file = open(filename, 'r', encoding="utf-8")
     except Exception as e:
-        print(theConfig.getStr(theConfig.STR_COULD_NOT_OPEN_MESSAGES_FILE) + ": " + fileName)
+        print(the_config.getStr(the_config.STR_COULD_NOT_OPEN_MESSAGES_FILE) + ": " + filename)
         print(e)
         return i
 
@@ -333,7 +334,7 @@ def loadMessages(fileName, messages, reactions, theConfig):
         line = ""
 
         try:
-            line = sourceFile.readline()
+            line = source_file.readline()
             if not line:
                 break
 
@@ -341,18 +342,18 @@ def loadMessages(fileName, messages, reactions, theConfig):
             line = line.rstrip()
 
             try:
-                theMessage = message.Message()
-                theReaction = message.Reaction()
-                if parseLine(line, theMessage, theReaction, theConfig):
+                the_message = message.Message()
+                the_reaction = message.Reaction()
+                if parse_line(line, the_message, the_reaction, theConfig):
                     parsed += 1
 
-                    if theReaction.emoji:
-                        reactions.append(theReaction) 
+                    if the_reaction.emoji:
+                        reactions.append(the_reaction) 
 
-                    if len(theMessage.body) or len(theMessage.attachments):
-                        messages.append(theMessage)
+                    if len(the_message.body) or len(the_message.attachments):
+                        messages.append(the_message)
                     else:
-                        noBodyOrAttachment +=1
+                        no_body_or_attachment +=1
 
             except Exception as exception1:
                 errored += 1
@@ -362,24 +363,24 @@ def loadMessages(fileName, messages, reactions, theConfig):
 
         i += 1
 
-    if theConfig.debug:
+    if the_config.debug:
         print("parsed: " + str(parsed))
         print("errored: " + str(errored))
-        print("no body or attachment: " + str(noBodyOrAttachment))
+        print("no body or attachment: " + str(no_body_or_attachment))
         print("ignored: " + str(ignored))
 
-    sourceFile.close()
+    source_file.close()
 
     return i
 
 # main
 
-theMessages = []
-theReactions = []
-theConfig = config.Config()
+the_messages = []
+the_reactions = []
+the_config = config.Config()
 
-if message_md.setup(theConfig, markdown.YAML_SERVICE_SIGNAL):
+if message_md.setup(the_config, markdown.YAML_SERVICE_SIGNAL):
 
     # needs to be after setup so the command line parameters override the
     # values defined in the settings file
-    message_md.getMarkdown(theConfig, loadMessages, theMessages, theReactions)
+    message_md.getMarkdown(the_config, load_messages, the_messages, the_reactions)
