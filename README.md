@@ -15,6 +15,6 @@ The code in this repo relies heavily on my [message_md](https://github.com/theph
 - There is no assurance that this tool will operate as defined 
 - The tool may harm your data albeit unintentionally
 
-## Licensing
+## License
 
-Apache License 2.0
+This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) file for details.
