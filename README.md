@@ -1,5 +1,9 @@
 # signal-md
 
+**UPDATE:** This repo is no longer maintained because there's something newer! As of May, 2026 Signal added an Export to JSON (actually, JSONL) to their Android and Windows apps. This makes the SQLite approach no longer necessary. See https://github.com/thephm/signal_jsonl_md
+
+---
+
 Signal to Markdown tool which utilizes [signald](https://signald.org/) export to JSON function.
 
 Check out the user [guide](docs/guide.md) for how to configure the tool.
